@@ -4,3 +4,5 @@ export function resize_canvas(){
     $cv.width = wid;
     $cv.height = wid;
 }//resize_canvas
+
+resize_canvas();

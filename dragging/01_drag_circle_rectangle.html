@@ -1,145 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dragging circles & rectangles around the Canvas</title>
     <link rel="stylesheet" href="./../common/reset.css">
+    <script src="./../common/resizeCanvas.js" type="module"></script>
 </head>
+
 <body>
-    <a href="https://riptutorial.com/html5-canvas/example/18918/dragging-circles---rectangles-around-the-canvas" target="_blank">Dragging circles & rectangles around the Canvas</a>
+    <a href="https://riptutorial.com/html5-canvas/example/18918/dragging-circles---rectangles-around-the-canvas"
+        target="_blank">Dragging circles & rectangles around the Canvas</a>
     <h1>Click and drag</h1>
     <canvas id="cv"></canvas>
-<!-- 😀[SCRIPT] -->
-<script type="module">
-    import {resize_canvas} from "./../common/resizeCanvas.js";
-    resize_canvas();
+    <!-- 😀[SCRIPT] -->
+    <script>
+        const $cv = document.getElementById('cv');
+        const ctx = $cv.getContext("2d");
+        const rect = { x: 50, y: 50, width: 100, height: 100, fillcolor: '#B2A4FF' };
+        const circ = { x: 100, y: 100, rad: 50, fillcolor: '#FFB4B4' }
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, $cv.height);
+        const img = new Image();
+        img.src = "https://images.unsplash.com/photo-1681210744266-c6a23b8ed176?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=698&q=80";
+        let dragging = null;
+        let posX, posY;
 
-    const $cv = document.getElementById('cv');
-    const ctx = $cv.getContext("2d");
-    const rect = {x: 50, y: 50, width: 100, height: 100, fillcolor: '#B2A4FF'};
-    const circ = {x:100, y:100, rad:50, fillcolor : '#FFB4B4'}
-    const bgGrad = ctx.createLinearGradient(0,0,0,$cv.height);
-    const img = new Image();
-    img.src = "https://images.unsplash.com/photo-1681210744266-c6a23b8ed176?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=698&q=80";
-    let dragging = null;
+        function draw_rect(x, y) {
+            const { width, height, fillcolor } = rect;
+            if (x != null && y != null) {
+                // rect.x = x - (width / 2) ;
+                // rect.y = y - (height / 2);
+                rect.x = x;
+                rect.y = y;
+            }
+            ctx.fillStyle = fillcolor;
+            ctx.strokeStyle = "black"
+            ctx.lineWidth = 5;
+            ctx.fillRect(rect.x, rect.y, width, height);
+            ctx.strokeRect(rect.x, rect.y, width, height);
+        }//draw_rect
 
-    function draw_rect(x,y){
-        const {width,height,fillcolor} = rect;
-        if(x != null && y != null){
-            rect.x = x - (width / 2);
-            rect.y = y - (height / 2);
-        }
-        ctx.fillStyle = fillcolor;
-        ctx.strokeStyle = "black"
-        ctx.lineWidth = 5;
-        ctx.fillRect(rect.x,rect.y,width,height);
-        ctx.strokeRect(rect.x,rect.y,width,height);
-    }//draw_rect
+        function draw_circle(x, y) {
+            const { rad, fillcolor } = circ;
+            if (x != null && y != null) {
+                circ.x = x;
+                circ.y = y;
+            }
+            ctx.fillStyle = fillcolor;
+            ctx.beginPath();
+            ctx.arc(circ.x, circ.y, rad, 0, 2 * Math.PI, false);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+        }//draw_circle
 
-    function draw_circle(x,y){
-        const {rad,fillcolor} = circ;
-        if(x != null && y != null){
-            circ.x = x;
-            circ.y = y;
-        }
-        ctx.fillStyle = fillcolor;
-        ctx.beginPath();
-        ctx.arc(circ.x, circ.y, rad, 0, 2 * Math.PI, false);
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-    }//draw_circle
+        function is_circ(x, y) {
+            const { x: cx, y: cy, rad } = circ;
+            const X = x - cx;
+            const Y = y - cy;
 
-    function is_circ(x,y){
-        const {x:cx, y:cy, rad} = circ;
+            if (x < cx - rad) return false;
+            if (x > cx + rad) return false;
+            if (y < cy - rad) return false;
+            if (y > cy + rad) return false;
+            if (X * X + Y * Y > rad * rad) return false;
 
-        if(x < cx - rad) return false;
-        if(x > cx + rad) return false;
-        if(y < cy - rad) return false;
-        if(y > cy + rad) return false;
+            return true;
+        }//is_circle
 
-        return true;
-    }//is_circle
+        function is_rect(x, y) {
+            const { x: rx, y: ry, width: rWid, height: rHei } = rect;
 
-    function is_rect(x,y){
-        const {x:rx,y:ry,width:rWid,height:rHei} = rect;
+            if (x < rx) return false;
+            if (x > rx + rWid) return false;
+            if (y < ry) return false;
+            if (y > ry + rHei) return false;
 
-        if(x < rx) return false;
-        if(x > rx + rWid) return false;
-        if(y < ry) return false;
-        if(y > ry + rHei) return false;
+            return true;
+        }//is_rect
 
-        return true;
-    }//is_rect
+        function reset() {
+            const { width, height } = $cv;
+            // ctx.clearRect(0,0,width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            bgGrad.addColorStop(0, "#000000");
+            bgGrad.addColorStop(0.5, "#000000aa");
+            bgGrad.addColorStop(1, "transparent");
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, width, height);
+        }//reset
 
-    function reset(){
-        const {width, height} = $cv;
-        // ctx.clearRect(0,0,width, height);
-        ctx.drawImage(img,0,0,width,height);
-        bgGrad.addColorStop(0,"#000000");
-        bgGrad.addColorStop(0.5,"#000000aa");
-        bgGrad.addColorStop(1,"transparent");
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0,0,width,height);
-    }//reset
-    
-    const on_mouse_move = e =>{
-        const {left,top} = $cv.getBoundingClientRect();
-        const x = e.clientX - left;
-        const y = e.clientY - top;
-        
-        reset();
-        
-        if(is_rect(x,y) && is_circ(x,y)){
-            switch(dragging){
-                case "rect" : {
+        function get_xy(e) {
+            const { left, top } = $cv.getBoundingClientRect();
+            const x = e.clientX - left;
+            const y = e.clientY - top;
+            return [x, y];
+        }//get_xy
+
+        const on_mouse_move = e => {
+            const [x, y] = get_xy(e);
+            reset();
+
+            switch (dragging) {
+                case "rect": {
                     draw_circle();
-                    draw_rect(x,y);
-                }break;
-                case "circ" : 
-                default : {
+                    draw_rect(x - posX, y - posY);
+                } break;
+                case "circ": {
                     draw_rect();
-                    draw_circle(x,y);
-                }break;
-            }//switch
-        }else if(is_rect(x,y)){
-            dragging = "rect";
-            draw_circle();
-            draw_rect(x,y);
-        }else if(is_circ(x,y)){
-            dragging = "circ";
-            draw_rect();
-            draw_circle(x,y);
-        }else{
+                    draw_circle(x, y);
+                } break;
+            }
+        }//on_mouse_move
+
+        const cancel = () => {
             dragging = null;
+            window.removeEventListener('mousemove', on_mouse_move);
+            add_mousedown();
+        }//cancel
+
+        const on_mouse_down = (e) => {
+            const [x, y] = get_xy(e);
+            if (!is_circ(x, y) && !is_rect(x, y)) {
+                dragging = null;
+                add_mousedown();
+                return;
+            }
+
+            posX = x - rect.x;
+            posY = y - rect.y;
+
+            if (is_rect(x, y)) {
+                if (is_circ(x, y) && (dragging == "circ" || dragging == null)) {
+                    dragging = "circ";
+                } else {
+                    dragging = "rect";
+                }
+            } else if (is_circ(x, y)) {
+                dragging = "circ";
+            }
+            window.addEventListener('mousemove', on_mouse_move);
+            window.addEventListener('mouseup', cancel, { once: true })
+        }//on_mouse_down
+
+        function add_mousedown() {
+            window.addEventListener('mousedown', on_mouse_down, { once: true })
+        }//add_mousedown
+
+
+        img.addEventListener('load', () => {
+            reset();
             draw_rect();
             draw_circle();
-        }
-    }//on_mouse_move
-    
-    const cancel = () =>{
-        window.removeEventListener('mousemove',on_mouse_move);
-        add_mousedown();
-    }//cancel
-
-    const on_mouse_down = ()=>{
-        window.addEventListener('mousemove',on_mouse_move);
-        window.addEventListener('mouseup', cancel, {once:true})
-    }//on_mouse_down
-
-    function add_mousedown(){
-        window.addEventListener('mousedown',on_mouse_down,{once:true})
-    }//add_mousedown
-
-    
-    img.addEventListener('load',()=>{
-        reset();
-        draw_rect();
-        draw_circle();
-        add_mousedown();
-    });
-</script>
+            add_mousedown();
+        });
+    </script>
 </body>
+
 </html>
